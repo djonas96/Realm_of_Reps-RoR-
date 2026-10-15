@@ -8,6 +8,7 @@ from datetime import date
 import requests
 
 # Wien
+ORT = "Wien"
 BREITENGRAD = 48.21
 LAENGENGRAD = 16.37
 REGEN_GRENZE = 30  # Prozent
@@ -45,16 +46,31 @@ def trainingsplan(regen_pro_tag):
     return plan
 
 
-def trainingsplan_anzeigen():
-    """Lädt das Wetter und zeigt den Trainingsplan für die nächsten 5 Tage."""
+def plan_laden():
+    """Lädt das Wetter und gibt den Plan zurück, oder None ohne Internet.
+    Wird von der Konsole und von der GUI verwendet."""
     try:
-        regen = regenwahrscheinlichkeit_laden()
-    except requests.RequestException:
+        return trainingsplan(regenwahrscheinlichkeit_laden())
+    except (requests.RequestException, KeyError, ValueError):
+        # RequestException: kein Internet / Server-Fehler
+        # KeyError, ValueError: Antwort hat ein unerwartetes Format
+        return None
+
+
+def plan_zeile(datum, prozent, einheit):
+    """Eine Zeile des Plans als Text, z. B. 'Fr 16.10.   Regen  20 %  →  Lauf'."""
+    tag = date.fromisoformat(datum)
+    regen_text = "  ?" if prozent is None else f"{prozent:>3}"
+    return f"{WOCHENTAGE[tag.weekday()]} {tag:%d.%m.}   Regen {regen_text} %  →  {einheit}"
+
+
+def trainingsplan_anzeigen():
+    """Zeigt den Trainingsplan für die nächsten 5 Tage in der Konsole."""
+    plan = plan_laden()
+    if plan is None:
         print("Wetterdaten konnten nicht geladen werden (Internet?).")
         return
-
-    print(f"\nTrainingsplan Wien (Lauf nur bis {REGEN_GRENZE} % Regen):")
-    for datum, prozent, einheit in trainingsplan(regen):
-        tag = WOCHENTAGE[date.fromisoformat(datum).weekday()]
-        regen_text = "?" if prozent is None else f"{prozent} %"
-        print(f"  {tag} {datum}: Regen {regen_text:>5} -> {einheit}")
+    print(f"\nTrainingsplan {ORT} (Lauf nur bis {REGEN_GRENZE} % Regen)")
+    print("─" * 44)
+    for datum, prozent, einheit in plan:
+        print("  " + plan_zeile(datum, prozent, einheit))
