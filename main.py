@@ -10,6 +10,7 @@ from lauf_gamification import (laeufe, pace_berechnen, pace_text, wochenkilomete
                                xp_berechnen, level, streak,
                                challenges_der_woche, challenge_pruefen,
                                plot_pace, plot_wochenkilometer, plot_kraftvolumen)
+from wetter import trainingsplan_anzeigen
 
 
 def challenges_anzeigen(workouts):
@@ -70,6 +71,7 @@ def main():
         print("3 Plot")
         print("4 Level anzeigen")
         print("5 Beenden")
+        print("6 Trainingsplan (Wetter)")
         auswahl = input("Auswahl: ").strip()
 
         if auswahl == "1":
@@ -83,8 +85,10 @@ def main():
         elif auswahl == "5":
             print("Bis zum nächsten Training!")
             break
+        elif auswahl == "6":
+            trainingsplan_anzeigen()
         else:
-            print("Bitte 1-5 eingeben.")
+            print("Bitte 1-6 eingeben.")
 
 
 if __name__ == "__main__":

@@ -19,6 +19,7 @@ Zum Ausprobieren mit Beispieldaten: `beispiel_training.csv` kopieren und in `tra
 | `daten_kraft.py` | Person A | CSV laden/speichern, Eingabe, Volumen pro Woche, Bestwerte |
 | `lauf_gamification.py` | Person B | Pace, Wochenkilometer, XP, Level, Streak, Challenges, Plots |
 | `main.py` | gemeinsam | Hauptmenü |
+| `wetter.py` | Zusatz | Trainingsplan nach Wetter (Open-Meteo, kein API-Key): Regen > 30 % → Kraft statt Lauf |
 | `training.csv` | – | eure Trainingsdaten (wird beim ersten Eintrag angelegt) |
 
 ## Regeln (Version 1)

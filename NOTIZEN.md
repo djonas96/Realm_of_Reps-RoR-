@@ -23,6 +23,14 @@ Laufendes Protokoll: Was wurde gemacht, was wurde entschieden.
 - Eine Swift-App lohnt sich nicht: zu viel Aufwand, und gratis läuft sie nur 7 Tage am iPhone
 - Gratis-Optionen: a-Shell (Python im Terminal, Plots unsicher) oder später eine eigene HTML-Version (als Zusatz, nicht für die Abgabe)
 
+## 16.10.2026 – Wetter-Trainingsplan
+
+- Neue Datei `wetter.py`, im Menü als Punkt 6 (Punkte 1–5 bleiben wie in der Angabe)
+- Holt die Regenwahrscheinlichkeit für die nächsten 5 Tage in Wien von Open-Meteo: gratis, kein API-Key, also kein Schlüssel im Repo
+- Regel: Regen > 30 % oder keine Daten → Kraft, sonst Lauf
+- Neue Abhängigkeit `requests` (in `requirements.txt`); am Mac einmal `pip3 install -r requirements.txt` ausführen
+- Getestet: Logik mit Testwerten und Fehlermeldung ohne Internet. Den echten Abruf kann Claude aus der Cloud nicht testen, das bitte am Mac prüfen.
+
 ## Am Mac testen
 
 1. GitHub Desktop: Repo klonen bzw. **Fetch origin → Pull**
@@ -35,5 +43,5 @@ Laufendes Protokoll: Was wurde gemacht, was wurde entschieden.
 
 - Offizielle Angabe prüfen (Mindestanforderungen, Abgabeformat, Termin), siehe `AUFGABE.md` Abschnitt 5
 - XP- und Level-Regeln gemeinsam abnicken
-- Am Mac testen
+- Am Mac testen (inkl. Menüpunkt 6 mit echten Wetterdaten)
 - Optional: HTML-Version fürs Handy
