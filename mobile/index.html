@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RoR Mobile</title>
+<meta name="description" content="Realm of Reps – Trainingslog für Kraft und Laufen mit XP, Level und Challenges">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="RoR">
+<meta name="theme-color" content="#F3F4EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161B18" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<style>
+/* ---------- Farben: dieselben wie design.py (GUI und Plots) ---------- */
+:root {
+  --hintergrund: #F3F4EF;
+  --karte: #FFFFFF;
+  --linie: #DDE1D9;
+  --text: #1F2A24;
+  --text-leise: #66706A;
+  --akzent: #4F7A5A;
+  --akzent-hell: #E2ECE3;
+  --akzent-dunkel: #3D6147;
+  --kraft: #4A5A8A;
+  --kraft-hell: #E3E7F1;
+  --offen: #A07C3F;
+  --fehler: #A0533F;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hintergrund: #161B18;
+    --karte: #1F2622;
+    --linie: #323B35;
+    --text: #E6EAE6;
+    --text-leise: #9AA59E;
+    --akzent: #7FAE89;
+    --akzent-hell: #2A3A2E;
+    --akzent-dunkel: #A3CBAB;
+    --kraft: #93A4D6;
+    --kraft-hell: #2A3040;
+    --offen: #D2AE6E;
+    --fehler: #D98C77;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--hintergrund);
+  color: var(--text);
+  font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  padding: env(safe-area-inset-top) 0 calc(76px + env(safe-area-inset-bottom));
+}
+header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 18px 16px 8px;
+}
+header h1 { font-size: 24px; margin: 0; letter-spacing: -0.3px; }
+header span { color: var(--text-leise); font-size: 14px; }
+main { padding: 0 16px; max-width: 640px; margin: 0 auto; }
+section[hidden] { display: none; }
+h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--text-leise); margin: 22px 4px 8px;
+}
+
+/* ---------- Kacheln ---------- */
+.karte {
+  background: var(--karte); border: 1px solid var(--linie); border-radius: 14px;
+  padding: 14px 16px; margin-bottom: 12px;
+}
+.kacheln { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.kacheln .karte { margin: 0; }
+.kachel-titel { font-size: 12px; color: var(--text-leise); text-transform: uppercase; letter-spacing: 0.6px; }
+.gross { font-size: 30px; font-weight: 700; line-height: 1.15; margin-top: 2px; }
+.klein { font-size: 13px; color: var(--text-leise); }
+.balken { height: 10px; background: var(--akzent-hell); border-radius: 5px; overflow: hidden; margin: 10px 0 6px; }
+.balken > div { height: 100%; background: var(--akzent); border-radius: 5px; transition: width .4s; }
+.zahl-lauf { color: var(--akzent); font-weight: 700; }
+.zahl-kraft { color: var(--kraft); font-weight: 700; }
+
+/* Challenges */
+.challenge { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--linie); }
+.challenge:first-of-type { border-top: 0; }
+.challenge .zeichen { font-weight: 700; width: 18px; text-align: center; }
+.challenge.erledigt .zeichen { color: var(--akzent); }
+.challenge.offen .zeichen { color: var(--offen); }
+
+/* ---------- Formular ---------- */
+.umschalter { display: flex; background: var(--akzent-hell); border-radius: 10px; padding: 3px; margin-bottom: 14px; }
+.umschalter button {
+  flex: 1; border: 0; background: transparent; color: var(--akzent-dunkel);
+  font: inherit; font-weight: 600; padding: 9px; border-radius: 8px;
+}
+.umschalter button.aktiv { background: var(--karte); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+label { display: block; font-size: 14px; color: var(--text-leise); margin: 10px 0 4px; }
+input {
+  width: 100%; font: inherit; font-size: 16px; /* 16px verhindert Zoom am iPhone */
+  padding: 11px 12px; border: 1px solid var(--linie); border-radius: 10px;
+  background: var(--karte); color: var(--text); -webkit-appearance: none; appearance: none;
+  min-height: 46px;
+}
+input:focus { outline: 2px solid var(--akzent); outline-offset: -1px; }
+.zwei { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.knopf {
+  display: block; width: 100%; border: 0; border-radius: 12px; padding: 14px;
+  background: var(--akzent); color: #fff; font: inherit; font-weight: 600; margin-top: 16px;
+}
+.knopf:active { background: var(--akzent-dunkel); }
+.knopf.leise { background: var(--akzent-hell); color: var(--akzent-dunkel); }
+.knopf.warnung { background: transparent; color: var(--fehler); border: 1px solid var(--linie); }
+.fehlertext { color: var(--fehler); font-size: 14px; min-height: 20px; margin-top: 8px; }
+
+/* Einträge */
+.eintrag { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--linie); }
+.eintrag:first-child { border-top: 0; }
+.punkt { width: 8px; height: 8px; border-radius: 4px; flex: none; }
+.eintrag .text { flex: 1; min-width: 0; }
+.eintrag .datum { font-size: 13px; color: var(--text-leise); }
+.eintrag button {
+  border: 0; background: transparent; color: var(--text-leise); font-size: 20px;
+  width: 40px; height: 40px; border-radius: 20px;
+}
+
+/* Tabellen in der Statistik */
+.zeile { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--linie); }
+.zeile:first-child { border-top: 0; }
+.zeile span:last-child { font-variant-numeric: tabular-nums; }
+
+/* Diagramme */
+.diagramm-wahl { display: flex; gap: 6px; margin-bottom: 8px; }
+.diagramm-wahl button {
+  flex: 1; border: 0; border-radius: 8px; padding: 8px 4px; font: inherit; font-size: 14px;
+  background: var(--akzent-hell); color: var(--akzent-dunkel);
+}
+.diagramm-wahl button.aktiv { background: var(--akzent); color: #fff; }
+svg { display: block; width: 100%; height: auto; }
+svg text { font-family: inherit; }
+.ablesen { font-size: 14px; color: var(--text); min-height: 20px; margin-top: 4px; }
+
+/* Wetter */
+.wetter-tag { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--linie); }
+.wetter-tag:first-child { border-top: 0; }
+.wetter-tag .tag { width: 92px; }
+.wetter-tag .regen { flex: 1; color: var(--text-leise); font-variant-numeric: tabular-nums; }
+.marke { color: #fff; font-weight: 600; font-size: 14px; padding: 4px 10px; border-radius: 8px; }
+.marke.lauf { background: var(--akzent); }
+.marke.kraft { background: var(--kraft); }
+@media (prefers-color-scheme: dark) { .marke, .knopf, .diagramm-wahl button.aktiv { color: #10140F; } }
+
+/* Meldung unten */
+#meldung {
+  position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(20px); opacity: 0; transition: .25s;
+  background: var(--text); color: var(--hintergrund); padding: 10px 16px; border-radius: 12px;
+  font-size: 15px; pointer-events: none; max-width: calc(100% - 32px);
+}
+#meldung.zeigen { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- Navigation unten ---------- */
+nav {
+  position: fixed; left: 0; right: 0; bottom: 0; display: flex;
+  background: color-mix(in srgb, var(--karte) 92%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--linie); padding-bottom: env(safe-area-inset-bottom);
+}
+nav button {
+  flex: 1; border: 0; background: transparent; color: var(--text-leise);
+  font: inherit; font-size: 11px; padding: 8px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+nav button svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+nav button.aktiv { color: var(--akzent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Realm of Reps</h1>
+  <span id="kopf-woche"></span>
+</header>
+
+<main>
+  <!-- ================= Übersicht ================= -->
+  <section id="seite-uebersicht">
+    <div class="karte">
+      <div class="kachel-titel">Level</div>
+      <div class="gross" id="level"></div>
+      <div class="balken"><div id="level-balken"></div></div>
+      <div class="klein" id="level-text"></div>
+    </div>
+    <div class="kacheln">
+      <div class="karte">
+        <div class="kachel-titel">Streak</div>
+        <div class="gross" id="streak"></div>
+        <div class="klein">Tage in Folge</div>
+      </div>
+      <div class="karte">
+        <div class="kachel-titel">Diese Woche</div>
+        <div class="zahl-lauf" id="woche-km" style="margin-top:8px"></div>
+        <div class="zahl-kraft" id="woche-kg"></div>
+      </div>
+    </div>
+    <h2>Challenges dieser Woche</h2>
+    <div class="karte" id="challenges"></div>
+    <h2>Letzte Einträge</h2>
+    <div class="karte" id="letzte"></div>
+  </section>
+
+  <!-- ================= Eintragen ================= -->
+  <section id="seite-eintragen" hidden>
+    <div class="karte">
+      <div class="umschalter" id="typ-wahl">
+        <button type="button" data-typ="kraft" class="aktiv">Kraft</button>
+        <button type="button" data-typ="lauf">Lauf</button>
+      </div>
+      <form id="formular" novalidate>
+        <label for="f-datum">Datum</label>
+        <input id="f-datum" type="date" required>
+        <div id="felder-kraft">
+          <label for="f-uebung">Übung</label>
+          <input id="f-uebung" list="uebungen" placeholder="z. B. Bankdrücken" autocomplete="off">
+          <datalist id="uebungen"></datalist>
+          <div class="zwei">
+            <div><label for="f-saetze">Sätze</label><input id="f-saetze" inputmode="numeric" placeholder="4"></div>
+            <div><label for="f-wdh">Wdh. pro Satz</label><input id="f-wdh" inputmode="numeric" placeholder="8"></div>
+          </div>
+          <label for="f-gewicht">Gewicht in kg (0 = Körpergewicht)</label>
+          <input id="f-gewicht" inputmode="decimal" placeholder="60">
+        </div>
+        <div id="felder-lauf" hidden>
+          <div class="zwei">
+            <div><label for="f-km">Distanz in km</label><input id="f-km" inputmode="decimal" placeholder="5,0"></div>
+            <div><label for="f-dauer">Dauer in min</label><input id="f-dauer" inputmode="decimal" placeholder="28"></div>
+          </div>
+        </div>
+        <div class="fehlertext" id="fehler" role="alert"></div>
+        <button class="knopf" type="submit">Speichern</button>
+      </form>
+    </div>
+    <h2>Alle Einträge</h2>
+    <div class="karte" id="alle"></div>
+  </section>
+
+  <!-- ================= Statistik ================= -->
+  <section id="seite-statistik" hidden>
+    <h2>Diagramme</h2>
+    <div class="karte">
+      <div class="diagramm-wahl" id="diagramm-wahl">
+        <button type="button" data-d="pace" class="aktiv">Pace</button>
+        <button type="button" data-d="km">Wochen-km</button>
+        <button type="button" data-d="kg">Kraftvolumen</button>
+      </div>
+      <div id="diagramm"></div>
+      <div class="ablesen" id="ablesen"></div>
+    </div>
+    <h2>Laufen</h2>
+    <div class="karte" id="stat-lauf"></div>
+    <h2>Kraft</h2>
+    <div class="karte" id="stat-kraft"></div>
+    <h2>Bestwerte</h2>
+    <div class="karte" id="stat-best"></div>
+  </section>
+
+  <!-- ================= Wetter ================= -->
+  <section id="seite-wetter" hidden>
+    <h2>Trainingsplan Wien</h2>
+    <div class="karte">
+      <div class="klein">Regenwahrscheinlichkeit über 30 % → Kraft statt Lauf. Daten von Open-Meteo.</div>
+      <button class="knopf" type="button" id="wetter-laden">Wetter laden</button>
+    </div>
+    <div class="karte" id="wetter" hidden></div>
+    <div class="klein" id="wetter-stand" style="margin:0 4px"></div>
+  </section>
+
+  <!-- ================= Daten ================= -->
+  <section id="seite-daten" hidden>
+    <h2>CSV (gleiches Format wie training.csv)</h2>
+    <div class="karte">
+      <div class="klein" id="daten-info"></div>
+      <button class="knopf" type="button" id="export">CSV exportieren</button>
+      <button class="knopf leise" type="button" id="import-knopf">CSV importieren (ersetzt alle Daten)</button>
+      <input type="file" id="import-datei" accept=".csv,text/csv,text/plain" hidden>
+    </div>
+    <h2>Regeln</h2>
+    <div class="karte klein">
+      10 XP pro Einheit, + 5 XP pro km bzw. + 1 XP pro 100 kg Volumen (Sätze × Wdh. × Gewicht).
+      Alle 100 XP ein Level. Streak = Trainingstage in Folge bis heute oder gestern.
+      Pro Woche 1–3 Challenges mit Bonus-XP, dieselben wie im Python-Programm.
+    </div>
+    <button class="knopf warnung" type="button" id="alles-loeschen">Alle Daten löschen</button>
+  </section>
+</main>
+
+<div id="meldung" role="status"></div>
+
+<nav id="navigation">
+  <button type="button" data-seite="uebersicht" class="aktiv">
+    <svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Übersicht</button>
+  <button type="button" data-seite="eintragen">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Eintragen</button>
+  <button type="button" data-seite="statistik">
+    <svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>Statistik</button>
+  <button type="button" data-seite="wetter">
+    <svg viewBox="0 0 24 24"><path d="M7 17h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1.5A3.5 3.5 0 0 0 7 17z"/></svg>Wetter</button>
+  <button type="button" data-seite="daten">
+    <svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Daten</button>
+</nav>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Regeln – genau wie im Python-Programm (lauf_gamification.py)
+   ===================================================================== */
+const SPALTEN = ["datum", "typ", "uebung", "saetze", "wdh", "gewicht", "km", "dauer_min"];
+const XP_PRO_LEVEL = 100;
+const REGEN_GRENZE = 30;
+const SPEICHER = "ror-workouts";
+const WETTER_SPEICHER = "ror-wetter";
+const CHALLENGE_POOL = [
+  { text: "Laufe 5 km", typ: "km", ziel: 5, xp: 50 },
+  { text: "Trainiere an 3 verschiedenen Tagen", typ: "trainingstage", ziel: 3, xp: 40 },
+  { text: "Schaffe 1000 kg Kraftvolumen an einem Tag", typ: "volumen", ziel: 1000, xp: 40 },
+  { text: "Laufe eine neue Bestpace", typ: "bestpace", ziel: 1, xp: 60 },
+  { text: "Trainiere 3 Tage hintereinander", typ: "streak", ziel: 3, xp: 50 },
+];
+const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+/* ---------- Zahlen wie in Python lesen ---------- */
+function ganzzahl(text) {            // wie int("4")
+  return /^\s*[+-]?\d+\s*$/.test(text ?? "") ? parseInt(text, 10) : NaN;
+}
+function kommazahl(text) {           // wie float("62.5")
+  const t = String(text ?? "").trim();
+  return /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(t) ? Number(t) : NaN;
+}
+function abrunden(wert) { return Math.trunc(wert + 0.000001); }   // wie abrunden() in Python
+function rundenWiePython(x) {        // Python rundet .5 zur geraden Zahl
+  const r = Math.round(x);
+  return (Math.abs(x % 1) === 0.5 && r % 2 !== 0) ? r - 1 : r;
+}
+
+/* ---------- Datum ---------- */
+function heuteText() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function alsUTC(iso) { return new Date(iso + "T00:00:00Z"); }
+function tagePlus(iso, n) {
+  const d = alsUTC(iso); d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function datumGueltig(iso) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso || "") && !isNaN(alsUTC(iso)) && alsUTC(iso).toISOString().slice(0, 10) === iso;
+}
+function wochentag(iso) { return (alsUTC(iso).getUTCDay() + 6) % 7; }    // 0 = Montag
+function kalenderwoche(iso) {        // '2026-10-15' -> '2026-KW42' (ISO-Woche wie Python)
+  const donnerstag = tagePlus(iso, 3 - wochentag(iso));
+  const jahr = Number(donnerstag.slice(0, 4));
+  const woche = 1 + Math.floor((alsUTC(donnerstag) - alsUTC(`${jahr}-01-01`)) / 86400000 / 7);
+  return `${jahr}-KW${String(woche).padStart(2, "0")}`;
+}
+function montagDerWoche(kw) {
+  const jahr = kw.slice(0, 4), woche = Number(kw.slice(-2));
+  const vierter = `${jahr}-01-04`;   // der 4. Jänner liegt immer in KW 1
+  return tagePlus(tagePlus(vierter, -wochentag(vierter)), (woche - 1) * 7);
+}
+function kurzDatum(iso) { return `${iso.slice(8)}.${iso.slice(5, 7)}.`; }
+
+/* ---------- Auswertung ---------- */
+function volumen(w) { return ganzzahl(w.saetze) * ganzzahl(w.wdh) * kommazahl(w.gewicht); }
+function pace(w) { return kommazahl(w.dauer_min) / kommazahl(w.km); }
+function paceText(p, mitEinheit = true) {
+  let min = Math.trunc(p), sek = rundenWiePython((p - min) * 60);
+  if (sek === 60) { min += 1; sek = 0; }
+  return `${min}:${String(sek).padStart(2, "0")}${mitEinheit ? " min/km" : ""}`;
+}
+function laeufe(liste) { return liste.filter(w => w.typ === "lauf"); }
+function summeProWoche(liste, typ, wert) {
+  const ergebnis = {};
+  for (const w of liste) if (w.typ === typ) {
+    const kw = kalenderwoche(w.datum);
+    ergebnis[kw] = (ergebnis[kw] || 0) + wert(w);
+  }
+  return ergebnis;
+}
+function wochenkilometer(liste) { return summeProWoche(liste, "lauf", w => kommazahl(w.km)); }
+function volumenProWoche(liste) { return summeProWoche(liste, "kraft", volumen); }
+function bestwerte(liste) {
+  const best = {};
+  for (const w of liste) if (w.typ === "kraft") {
+    const g = kommazahl(w.gewicht);
+    if (g > (best[w.uebung] ?? -1)) best[w.uebung] = g;
+  }
+  return best;
+}
+
+/* ---------- Gamification ---------- */
+function xpFuerWorkout(w) {
+  if (w.typ === "lauf") return 10 + abrunden(kommazahl(w.km) * 5);
+  return 10 + abrunden(volumen(w) / 100);
+}
+function xpBerechnen(liste) {
+  return liste.reduce((summe, w) => summe + xpFuerWorkout(w), 0) + bonusXp(liste);
+}
+function level(xp) { return Math.floor(xp / XP_PRO_LEVEL) + 1; }
+function laengsteSerie(tage) {
+  let laengste = 0;
+  for (const tag of tage) {
+    if (tage.has(tagePlus(tag, -1))) continue;
+    let laenge = 1;
+    while (tage.has(tagePlus(tag, laenge))) laenge++;
+    laengste = Math.max(laengste, laenge);
+  }
+  return laengste;
+}
+function streak(liste) {
+  const tage = new Set(liste.map(w => w.datum));
+  let tag = heuteText();
+  if (!tage.has(tag)) tag = tagePlus(tag, -1);
+  let anzahl = 0;
+  while (tage.has(tag)) { anzahl++; tag = tagePlus(tag, -1); }
+  return anzahl;
+}
+
+/* ---------- Zufall wie Python ----------
+   Python verwendet den "Mersenne Twister". Damit die Handy-App für jede Woche
+   dieselben Challenges zieht wie random.Random(jahr*100+woche) in Python,
+   wird er hier nachgebaut (inkl. randint und sample). */
+class PythonZufall {
+  constructor(seed) {
+    this.mt = new Uint32Array(624);
+    this.index = 624;
+    this.mitSchluessel([seed >>> 0]);
+  }
+  start(s) {
+    const mt = this.mt;
+    mt[0] = s >>> 0;
+    for (let i = 1; i < 624; i++) mt[i] = (Math.imul(1812433253, mt[i - 1] ^ (mt[i - 1] >>> 30)) + i) >>> 0;
+    this.index = 624;
+  }
+  mitSchluessel(schluessel) {
+    const mt = this.mt;
+    this.start(19650218);
+    let i = 1, j = 0;
+    for (let k = Math.max(624, schluessel.length); k > 0; k--) {
+      mt[i] = ((mt[i] ^ Math.imul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1664525)) + schluessel[j] + j) >>> 0;
+      i++; j++;
+      if (i >= 624) { mt[0] = mt[623]; i = 1; }
+      if (j >= schluessel.length) j = 0;
+    }
+    for (let k = 623; k > 0; k--) {
+      mt[i] = ((mt[i] ^ Math.imul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1566083941)) - i) >>> 0;
+      i++;
+      if (i >= 624) { mt[0] = mt[623]; i = 1; }
+    }
+    mt[0] = 0x80000000;
+  }
+  zahl32() {
+    const mt = this.mt;
+    if (this.index >= 624) {
+      for (let k = 0; k < 624; k++) {
+        const y = (mt[k] & 0x80000000) | (mt[(k + 1) % 624] & 0x7fffffff);
+        mt[k] = mt[(k + 397) % 624] ^ (y >>> 1) ^ ((y & 1) ? 0x9908b0df : 0);
+      }
+      this.index = 0;
+    }
+    let y = mt[this.index++];
+    y ^= y >>> 11;
+    y = (y ^ ((y << 7) & 0x9d2c5680)) >>> 0;
+    y = (y ^ ((y << 15) & 0xefc60000)) >>> 0;
+    y ^= y >>> 18;
+    return y >>> 0;
+  }
+  bits(k) { return this.zahl32() >>> (32 - k); }           // getrandbits(k), k <= 32
+  unter(n) {                                                // _randbelow(n)
+    const k = n.toString(2).length;
+    let r = this.bits(k);
+    while (r >= n) r = this.bits(k);
+    return r;
+  }
+  randint(a, b) { return a + this.unter(b - a + 1); }
+  sample(liste, k) {                                        // für kleine Listen wie in Python
+    const pool = liste.slice(), n = liste.length, ergebnis = [];
+    for (let i = 0; i < k; i++) {
+      const j = this.unter(n - i);
+      ergebnis.push(pool[j]);
+      pool[j] = pool[n - i - 1];
+    }
+    return ergebnis;
+  }
+}
+
+function challengesDerWoche(kw) {
+  const [jahr, woche] = kw.split("-KW").map(Number);
+  const zufall = new PythonZufall(jahr * 100 + woche);
+  const k = zufall.randint(1, 3);
+  return zufall.sample(CHALLENGE_POOL, k);
+}
+function challengeWert(ch, liste, kw) {
+  const dieseWoche = liste.filter(w => kalenderwoche(w.datum) === kw);
+  switch (ch.typ) {
+    case "km": return laeufe(dieseWoche).reduce((s, w) => s + kommazahl(w.km), 0);
+    case "trainingstage": return new Set(dieseWoche.map(w => w.datum)).size;
+    case "volumen": {
+      const proTag = {};
+      for (const w of dieseWoche) if (w.typ === "kraft") proTag[w.datum] = (proTag[w.datum] || 0) + volumen(w);
+      return Math.max(0, ...Object.values(proTag));
+    }
+    case "bestpace": {
+      const frueher = laeufe(liste).filter(w => kalenderwoche(w.datum) < kw).map(pace);
+      const jetzt = laeufe(dieseWoche).map(pace);
+      return jetzt.length && (!frueher.length || Math.min(...jetzt) < Math.min(...frueher)) ? 1 : 0;
+    }
+    case "streak": return laengsteSerie(new Set(dieseWoche.map(w => w.datum)));
+  }
+  return 0;
+}
+function bonusXp(liste) {
+  let xp = 0;
+  for (const kw of new Set(liste.map(w => kalenderwoche(w.datum))))
+    for (const ch of challengesDerWoche(kw))
+      if (challengeWert(ch, liste, kw) >= ch.ziel) xp += ch.xp;
+  return xp;
+}
+function fortschrittText(ch, wert) {
+  if (ch.typ === "km") return `${zahlDe(wert)} / ${ch.ziel} km`;
+  if (ch.typ === "volumen") return `${Math.round(wert)} / ${ch.ziel} kg`;
+  if (ch.typ === "trainingstage" || ch.typ === "streak") return `${wert} / ${ch.ziel} Tage`;
+  return wert >= ch.ziel ? "geschafft" : "noch nicht";
+}
+
+/* =====================================================================
+   Daten: localStorage und CSV (gleiches Format wie training.csv)
+   ===================================================================== */
+function zeileGueltig(z) {           // wie zeile_gueltig() in daten_kraft.py
+  if (!datumGueltig(z.datum)) return false;
+  if (z.typ === "kraft") return ganzzahl(z.saetze) > 0 && ganzzahl(z.wdh) > 0 && kommazahl(z.gewicht) >= 0 && (z.uebung || "").trim() !== "";
+  if (z.typ === "lauf") return kommazahl(z.km) > 0 && kommazahl(z.dauer_min) > 0;
+  return false;
+}
+let workouts = [];
+function laden() {
+  try { workouts = JSON.parse(localStorage.getItem(SPEICHER)) || []; } catch { workouts = []; }
+  workouts = workouts.filter(zeileGueltig);
+}
+function speichern() {
+  try { localStorage.setItem(SPEICHER, JSON.stringify(workouts)); }
+  catch { meldung("Speichern im Browser nicht möglich (privates Fenster?)"); }
+}
+
+function csvFeld(wert) {
+  const t = String(wert ?? "");
+  return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+}
+function csvErzeugen(liste) {
+  const zeilen = [SPALTEN.join(",")];
+  for (const w of liste) zeilen.push(SPALTEN.map(s => csvFeld(w[s])).join(","));
+  return zeilen.join("\n") + "\n";
+}
+function csvLesen(text) {
+  // Liest CSV mit Anführungszeichen; entfernt ein BOM-Zeichen am Anfang (Excel)
+  text = text.replace(/^﻿/, "");
+  const zeilen = [];
+  let zeile = [], feld = "", inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"' && text[i + 1] === '"') { feld += '"'; i++; }
+      else if (c === '"') inQuotes = false;
+      else feld += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === ",") { zeile.push(feld); feld = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      zeile.push(feld); zeilen.push(zeile); zeile = []; feld = "";
+    } else feld += c;
+  }
+  if (feld !== "" || zeile.length) { zeile.push(feld); zeilen.push(zeile); }
+  const kopf = (zeilen.shift() || []).map(s => s.trim());
+  if (!SPALTEN.every(s => kopf.includes(s))) throw new Error("Spalten passen nicht zu training.csv");
+  return zeilen
+    .filter(z => z.some(f => f !== ""))
+    .map(z => Object.fromEntries(SPALTEN.map(s => [s, z[kopf.indexOf(s)] ?? ""])));
+}
+function zahlText(n) { return String(n); }   // 60 -> "60", 62.5 -> "62.5" (wie zahl_text in Python)
+
+/* =====================================================================
+   Oberfläche
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+function html(text) {
+  return String(text).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+let meldungTimer;
+function meldung(text) {
+  const m = $("meldung");
+  m.textContent = text; m.classList.add("zeigen");
+  clearTimeout(meldungTimer);
+  meldungTimer = setTimeout(() => m.classList.remove("zeigen"), 2200);
+}
+function zahlDe(n, stellen = 1) { return n.toLocaleString("de-AT", { minimumFractionDigits: stellen, maximumFractionDigits: stellen }); }
+function eintragText(w) {
+  if (w.typ === "lauf") {
+    return `${zahlDe(kommazahl(w.km), 1)} km in ${kommazahl(w.dauer_min).toLocaleString("de-AT")} min · ${paceText(pace(w))}`;
+  }
+  const g = kommazahl(w.gewicht);
+  return `${w.uebung} ${w.saetze} × ${w.wdh}${g > 0 ? ` @ ${g.toLocaleString("de-AT")} kg` : ""}`;
+}
+function eintragHtml(w, index, loeschbar) {
+  const farbe = w.typ === "lauf" ? "var(--akzent)" : "var(--kraft)";
+  return `<div class="eintrag">
+    <span class="punkt" style="background:${farbe}"></span>
+    <div class="text"><div>${html(eintragText(w))}</div>
+      <div class="datum">${WOCHENTAGE[wochentag(w.datum)]} ${kurzDatum(w.datum)} · +${xpFuerWorkout(w)} XP</div></div>
+    ${loeschbar ? `<button type="button" data-loeschen="${index}" aria-label="Eintrag löschen">×</button>` : ""}
+  </div>`;
+}
+function sortiert() {   // neueste zuerst, Index bleibt für das Löschen erhalten
+  return workouts.map((w, i) => [w, i]).sort((a, b) => b[0].datum.localeCompare(a[0].datum) || b[1] - a[1]);
+}
+
+function uebersichtZeigen() {
+  const kw = kalenderwoche(heuteText());
+  const xp = xpBerechnen(workouts);
+  $("kopf-woche").textContent = `${kurzDatum(heuteText())} · ${kw}`;
+  $("level").textContent = `Level ${level(xp)}`;
+  $("level-balken").style.width = `${xp % XP_PRO_LEVEL}%`;
+  $("level-text").textContent = `${xp % XP_PRO_LEVEL} / ${XP_PRO_LEVEL} XP · ${xp} gesamt`;
+  $("streak").textContent = streak(workouts);
+  $("woche-km").textContent = `${zahlDe(wochenkilometer(workouts)[kw] || 0)} km`;
+  $("woche-kg").textContent = `${Math.round(volumenProWoche(workouts)[kw] || 0).toLocaleString("de-AT")} kg`;
+
+  $("challenges").innerHTML = challengesDerWoche(kw).map(ch => {
+    const wert = challengeWert(ch, workouts, kw), erledigt = wert >= ch.ziel;
+    return `<div class="challenge ${erledigt ? "erledigt" : "offen"}">
+      <span class="zeichen">${erledigt ? "✔" : "○"}</span>
+      <div><div>${html(ch.text)}</div><div class="klein">${fortschrittText(ch, wert)} · +${ch.xp} XP</div></div>
+    </div>`;
+  }).join("");
+
+  const letzte = sortiert().slice(0, 4);
+  $("letzte").innerHTML = letzte.length ? letzte.map(([w, i]) => eintragHtml(w, i, false)).join("")
+    : `<div class="klein">Noch keine Einträge. Unten auf „Eintragen“ tippen.</div>`;
+}
+
+function eintraegeZeigen() {
+  const liste = sortiert();
+  $("alle").innerHTML = liste.length ? liste.map(([w, i]) => eintragHtml(w, i, true)).join("")
+    : `<div class="klein">Noch keine Einträge.</div>`;
+  const namen = [...new Set(workouts.filter(w => w.typ === "kraft").map(w => w.uebung))].sort();
+  $("uebungen").innerHTML = namen.map(n => `<option value="${html(n)}">`).join("");
+}
+
+function statistikZeigen() {
+  const zeile = (links, rechts) => `<div class="zeile"><span>${links}</span><span>${rechts}</span></div>`;
+  const km = wochenkilometer(workouts);
+  const paces = laeufe(workouts).map(pace);
+  let lauf = Object.keys(km).sort().reverse().slice(0, 8).map(kw => zeile(kw, `${zahlDe(km[kw])} km`)).join("");
+  if (paces.length) {
+    lauf = zeile("Gesamt", `${zahlDe(Object.values(km).reduce((a, b) => a + b, 0))} km in ${paces.length} ${paces.length === 1 ? "Lauf" : "Läufen"}`)
+      + zeile("Beste Pace", paceText(Math.min(...paces))) + lauf;
+  }
+  $("stat-lauf").innerHTML = lauf || `<div class="klein">Noch keine Läufe.</div>`;
+
+  const vol = volumenProWoche(workouts);
+  $("stat-kraft").innerHTML = Object.keys(vol).sort().reverse().slice(0, 8)
+    .map(kw => zeile(kw, `${Math.round(vol[kw]).toLocaleString("de-AT")} kg`)).join("")
+    || `<div class="klein">Noch keine Krafteinheiten.</div>`;
+
+  const best = bestwerte(workouts);
+  $("stat-best").innerHTML = Object.keys(best).sort((a, b) => a.localeCompare(b, "de"))
+    .map(u => zeile(html(u), best[u] === 0 ? "Körpergewicht" : `${best[u].toLocaleString("de-AT")} kg`)).join("")
+    || `<div class="klein">Noch keine Bestwerte.</div>`;
+
+  diagrammZeigen();
+}
+
+/* ---------- Diagramme (SVG, gleicher Stil wie die Python-Plots) ---------- */
+let aktuellesDiagramm = "pace";
+const B = 340, H = 210, RAND = { l: 44, r: 12, o: 24, u: 28 };
+
+function achsen(maxWert, minWert, format, umgedreht) {
+  // 4 Gitterlinien mit Beschriftung
+  let svg = "";
+  for (let i = 0; i <= 3; i++) {
+    const wert = minWert + (maxWert - minWert) * i / 3;
+    const y = umgedreht ? RAND.o + (H - RAND.o - RAND.u) * i / 3 : H - RAND.u - (H - RAND.o - RAND.u) * i / 3;
+    svg += `<line x1="${RAND.l}" x2="${B - RAND.r}" y1="${y}" y2="${y}" stroke="var(--linie)" stroke-width="1"/>`
+      + `<text x="${RAND.l - 6}" y="${y + 4}" text-anchor="end" font-size="11" fill="var(--text-leise)">${format(wert)}</text>`;
+  }
+  return svg;
+}
+function wochenAuffuellen(werte) {
+  const wochen = Object.keys(werte).sort();
+  if (!wochen.length) return [];
+  const ergebnis = [];
+  for (let tag = montagDerWoche(wochen[0]); tag <= montagDerWoche(wochen[wochen.length - 1]); tag = tagePlus(tag, 7)) {
+    const kw = kalenderwoche(tag);
+    ergebnis.push([kw, werte[kw] || 0]);
+  }
+  return ergebnis.slice(-10);   // höchstens die letzten 10 Wochen
+}
+function balkenDiagramm(werte, farbe, einheit, stellen) {
+  const daten = wochenAuffuellen(werte);
+  if (!daten.length) return null;
+  const max = Math.max(...daten.map(d => d[1])) * 1.15 || 1;
+  const breite = (B - RAND.l - RAND.r) / daten.length;
+  const hoehe = H - RAND.o - RAND.u;
+  let svg = achsen(max, 0, w => Math.round(w).toLocaleString("de-AT"), false);
+  daten.forEach(([kw, wert], i) => {
+    const h = wert / max * hoehe, x = RAND.l + i * breite + breite * 0.2, b = breite * 0.6;
+    const y = H - RAND.u - h;
+    const text = `${kw}: ${wert.toLocaleString("de-AT", { maximumFractionDigits: stellen })} ${einheit}`;
+    // Balken mit oben abgerundeten Ecken
+    if (h > 0) svg += `<path d="M${x},${H - RAND.u} V${y + Math.min(4, h)} q0,-4 4,-4 h${b - 8} q4,0 4,4 V${H - RAND.u} Z" fill="${farbe}"/>`;
+    // unsichtbare, größere Tippfläche
+    svg += `<rect x="${RAND.l + i * breite}" y="${RAND.o}" width="${breite}" height="${hoehe}" fill="transparent" data-wert="${html(text)}"/>`;
+    if (daten.length <= 8 && wert > 0) svg += `<text x="${x + b / 2}" y="${y - 5}" text-anchor="middle" font-size="11" fill="var(--text)">${wert.toLocaleString("de-AT", { maximumFractionDigits: stellen })}</text>`;
+    svg += `<text x="${x + b / 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--text-leise)">${kw.slice(5)}</text>`;
+  });
+  return svg;
+}
+function paceDiagramm() {
+  const liste = laeufe(workouts).sort((a, b) => a.datum.localeCompare(b.datum)).slice(-20);
+  if (!liste.length) return null;
+  const werte = liste.map(pace);
+  let min = Math.min(...werte), max = Math.max(...werte);
+  const puffer = Math.max((max - min) * 0.2, 0.1);
+  min -= puffer; max += puffer;
+  const breite = B - RAND.l - RAND.r, hoehe = H - RAND.o - RAND.u;
+  // schneller (kleinere Pace) steht oben, wie im Python-Plot
+  const x = i => RAND.l + (liste.length === 1 ? breite / 2 : breite * (0.04 + 0.92 * i / (liste.length - 1)));
+  const y = p => RAND.o + (p - min) / (max - min) * hoehe;
+  let svg = achsen(max, min, p => paceText(p, false), true);
+  svg += `<polyline points="${werte.map((p, i) => `${x(i)},${y(p)}`).join(" ")}" fill="none" stroke="var(--akzent)" stroke-width="2" stroke-linejoin="round"/>`;
+  const beste = werte.indexOf(Math.min(...werte));
+  werte.forEach((p, i) => {
+    svg += `<circle cx="${x(i)}" cy="${y(p)}" r="4.5" fill="var(--akzent)" stroke="var(--karte)" stroke-width="2"/>`;
+    svg += `<circle cx="${x(i)}" cy="${y(p)}" r="16" fill="transparent" data-wert="${kurzDatum(liste[i].datum)}: ${paceText(p)} (${zahlDe(kommazahl(liste[i].km))} km)"/>`;
+  });
+  svg += `<text x="${Math.min(Math.max(x(beste), RAND.l + 40), B - 50)}" y="${y(werte[beste]) - 10}" text-anchor="middle" font-size="11" fill="var(--text)">Best: ${paceText(werte[beste])}</text>`;
+  const erster = liste[0].datum, letzter = liste[liste.length - 1].datum;
+  svg += `<text x="${x(0)}" y="${H - 8}" text-anchor="start" font-size="11" fill="var(--text-leise)">${kurzDatum(erster)}</text>`;
+  if (liste.length > 1) svg += `<text x="${x(liste.length - 1)}" y="${H - 8}" text-anchor="end" font-size="11" fill="var(--text-leise)">${kurzDatum(letzter)}</text>`;
+  return svg;
+}
+function diagrammZeigen() {
+  const arten = {
+    pace: [paceDiagramm, "Noch keine Läufe eingetragen.", "Pace-Verlauf (oben = schneller)"],
+    km: [() => balkenDiagramm(wochenkilometer(workouts), "var(--akzent)", "km", 1), "Noch keine Läufe eingetragen.", "Wochenkilometer"],
+    kg: [() => balkenDiagramm(volumenProWoche(workouts), "var(--kraft)", "kg", 0), "Noch keine Krafteinheiten eingetragen.", "Kraftvolumen pro Woche in kg"],
+  };
+  const [zeichnen, leer, titel] = arten[aktuellesDiagramm];
+  const inhalt = zeichnen();
+  $("diagramm").innerHTML = inhalt
+    ? `<svg viewBox="0 0 ${B} ${H}" role="img" aria-label="${titel}">${inhalt}</svg>`
+    : `<div class="klein" style="padding:40px 0;text-align:center">${leer}</div>`;
+  $("ablesen").textContent = inhalt ? `${titel} · Antippen zeigt den Wert` : "";
+}
+
+/* ---------- Wetter ---------- */
+function wetterZeigen(daten) {
+  $("wetter").hidden = false;
+  $("wetter").innerHTML = daten.tage.map(([datum, prozent]) => {
+    const einheit = prozent === null || prozent > REGEN_GRENZE ? "Kraft" : "Lauf";
+    return `<div class="wetter-tag"><span class="tag">${WOCHENTAGE[wochentag(datum)]} ${kurzDatum(datum)}</span>
+      <span class="regen">Regen ${prozent === null ? "?" : prozent} %</span>
+      <span class="marke ${einheit.toLowerCase()}">${einheit}</span></div>`;
+  }).join("");
+  $("wetter-stand").textContent = `Stand: ${new Date(daten.zeit).toLocaleString("de-AT", { dateStyle: "short", timeStyle: "short" })}`;
+}
+async function wetterLaden() {
+  const knopf = $("wetter-laden");
+  knopf.disabled = true; knopf.textContent = "Lädt …";
+  try {
+    const url = "https://api.open-meteo.com/v1/forecast?latitude=48.21&longitude=16.37"
+      + "&daily=precipitation_probability_max&timezone=Europe%2FVienna&forecast_days=5";
+    const antwort = await fetch(url);
+    if (!antwort.ok) throw new Error(antwort.status);
+    const json = await antwort.json();
+    const daten = { zeit: Date.now(), tage: json.daily.time.map((t, i) => [t, json.daily.precipitation_probability_max[i]]) };
+    try { localStorage.setItem(WETTER_SPEICHER, JSON.stringify(daten)); } catch {}
+    wetterZeigen(daten);
+  } catch {
+    meldung("Wetterdaten konnten nicht geladen werden (Internet?)");
+  } finally {
+    knopf.disabled = false; knopf.textContent = "Wetter laden";
+  }
+}
+
+/* ---------- Daten-Seite ---------- */
+function datenZeigen() {
+  const n = workouts.length;
+  $("daten-info").textContent = n
+    ? `${n} Einträge gespeichert (nur auf diesem Gerät). Regelmäßig exportieren = Sicherung.`
+    : "Noch keine Einträge. Du kannst deine training.csv vom Mac importieren.";
+}
+async function exportieren() {
+  const datei = new File([csvErzeugen(workouts)], "training.csv", { type: "text/csv" });
+  // Am iPhone: Teilen-Menü (Dateien, AirDrop, Mail); sonst normaler Download
+  if (navigator.canShare && navigator.canShare({ files: [datei] })) {
+    try { await navigator.share({ files: [datei], title: "training.csv" }); return; }
+    catch (e) { if (e.name === "AbortError") return; }
+  }
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(datei);
+  link.download = "training.csv";
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+async function importieren(datei) {
+  let zeilen;
+  try { zeilen = csvLesen(await datei.text()); }
+  catch (e) { meldung(`Import fehlgeschlagen: ${e.message}`); return; }
+  const gueltig = zeilen.filter(zeileGueltig);
+  const ungueltig = zeilen.length - gueltig.length;
+  if (!confirm(`${gueltig.length} Einträge importieren${ungueltig ? ` (${ungueltig} ungültige Zeilen werden übersprungen)` : ""}? Die bisherigen ${workouts.length} Einträge werden ersetzt.`)) return;
+  workouts = gueltig;
+  speichern(); allesZeigen();
+  meldung(`${gueltig.length} Einträge importiert`);
+}
+
+/* ---------- Formular ---------- */
+let typ = "kraft";
+function typWaehlen(neu) {
+  typ = neu;
+  document.querySelectorAll("#typ-wahl button").forEach(b => b.classList.toggle("aktiv", b.dataset.typ === typ));
+  $("felder-kraft").hidden = typ !== "kraft";
+  $("felder-lauf").hidden = typ !== "lauf";
+  $("fehler").textContent = "";
+}
+function formularLesen() {
+  // Prüft die Eingaben wie workout_aus_formular() in gui.py. Fehler -> Error mit Hinweistext
+  const wert = id => $(id).value.trim().replace(",", ".");
+  const w = Object.fromEntries(SPALTEN.map(s => [s, ""]));
+  w.datum = $("f-datum").value;
+  if (!datumGueltig(w.datum)) throw new Error("Bitte ein gültiges Datum wählen.");
+  if (w.datum > heuteText()) throw new Error("Das Datum liegt in der Zukunft.");
+  w.typ = typ;
+  const zahl = (id, name, ganz, nullErlaubt) => {
+    const z = ganz ? ganzzahl(wert(id)) : kommazahl(wert(id));
+    if (isNaN(z)) throw new Error(`${name}: bitte ${ganz ? "eine ganze Zahl" : "eine Zahl"} eingeben.`);
+    if (z < 0 || (z === 0 && !nullErlaubt)) throw new Error(`${name}: muss größer als 0 sein.`);
+    return zahlText(z);
+  };
+  if (typ === "kraft") {
+    w.uebung = $("f-uebung").value.trim();
+    if (!w.uebung) throw new Error("Bitte eine Übung angeben.");
+    w.saetze = zahl("f-saetze", "Sätze", true);
+    w.wdh = zahl("f-wdh", "Wiederholungen", true);
+    w.gewicht = zahl("f-gewicht", "Gewicht", false, true);
+  } else {
+    w.uebung = "Lauf";
+    w.km = zahl("f-km", "Distanz");
+    w.dauer_min = zahl("f-dauer", "Dauer");
+  }
+  return w;
+}
+function absenden(e) {
+  e.preventDefault();
+  let w;
+  try { w = formularLesen(); }
+  catch (fehler) { $("fehler").textContent = fehler.message; return; }
+  const levelVorher = level(xpBerechnen(workouts));
+  workouts.push(w);
+  speichern();
+  $("fehler").textContent = "";
+  ["f-saetze", "f-wdh", "f-gewicht", "f-km", "f-dauer"].forEach(id => $(id).value = "");
+  allesZeigen();
+  const levelNachher = level(xpBerechnen(workouts));
+  meldung(levelNachher > levelVorher ? `Level ${levelNachher} erreicht!` : `✔ Gespeichert · +${xpFuerWorkout(w)} XP`);
+}
+
+/* ---------- Navigation ---------- */
+function seiteZeigen(name) {
+  document.querySelectorAll("main > section").forEach(s => s.hidden = s.id !== `seite-${name}`);
+  document.querySelectorAll("#navigation button").forEach(b => b.classList.toggle("aktiv", b.dataset.seite === name));
+  window.scrollTo(0, 0);
+}
+function allesZeigen() {
+  uebersichtZeigen(); eintraegeZeigen(); statistikZeigen(); datenZeigen();
+}
+
+function starten() {
+  laden();
+  $("f-datum").value = heuteText();
+  $("f-datum").max = heuteText();
+  $("navigation").addEventListener("click", e => { const b = e.target.closest("button"); if (b) seiteZeigen(b.dataset.seite); });
+  $("typ-wahl").addEventListener("click", e => { const b = e.target.closest("button"); if (b) typWaehlen(b.dataset.typ); });
+  $("formular").addEventListener("submit", absenden);
+  $("alle").addEventListener("click", e => {
+    const b = e.target.closest("[data-loeschen]");
+    if (!b) return;
+    const w = workouts[Number(b.dataset.loeschen)];
+    if (!confirm(`Eintrag vom ${kurzDatum(w.datum)} löschen?\n${eintragText(w)}`)) return;
+    workouts.splice(Number(b.dataset.loeschen), 1);
+    speichern(); allesZeigen(); meldung("Eintrag gelöscht");
+  });
+  $("diagramm-wahl").addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    aktuellesDiagramm = b.dataset.d;
+    document.querySelectorAll("#diagramm-wahl button").forEach(x => x.classList.toggle("aktiv", x === b));
+    diagrammZeigen();
+  });
+  $("diagramm").addEventListener("click", e => {
+    const ziel = e.target.closest("[data-wert]");
+    if (ziel) $("ablesen").textContent = ziel.dataset.wert;
+  });
+  $("wetter-laden").addEventListener("click", wetterLaden);
+  $("export").addEventListener("click", exportieren);
+  $("import-knopf").addEventListener("click", () => $("import-datei").click());
+  $("import-datei").addEventListener("change", e => { if (e.target.files[0]) importieren(e.target.files[0]); e.target.value = ""; });
+  $("alles-loeschen").addEventListener("click", () => {
+    if (!workouts.length || !confirm("Wirklich ALLE Einträge löschen? Vorher am besten exportieren.")) return;
+    workouts = []; speichern(); allesZeigen(); meldung("Alle Daten gelöscht");
+  });
+  try { const w = JSON.parse(localStorage.getItem(WETTER_SPEICHER)); if (w) wetterZeigen(w); } catch {}
+  allesZeigen();
+
+  // Offline-Fähigkeit: Service Worker speichert die App im Cache (nur über https oder localhost)
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+}
+starten();
+</script>
+</body>
+</html>
