@@ -31,6 +31,16 @@ Laufendes Protokoll: Was wurde gemacht, was wurde entschieden.
 - Neue Abhängigkeit `requests` (in `requirements.txt`); am Mac einmal `pip3 install -r requirements.txt` ausführen
 - Getestet: Logik mit Testwerten und Fehlermeldung ohne Internet. Den echten Abruf kann Claude aus der Cloud nicht testen, das bitte am Mac prüfen.
 
+## 16.10.2026 – Grafisches Menü
+
+- Neue Datei `gui.py` als **Zusatz**. `main.py` bleibt das Konsolenmenü laut Angabe (für die Abgabe).
+- tkinter (bei Python dabei): Kopfzeile mit Level und Challenges, Buttons für Workout, Statistik, Level, Wetter-Plan, 3 Plots
+- Workout-Eingabe als Formular mit Fehlermeldungen bei falschen Eingaben
+- Nutzt dieselben Funktionen wie das Konsolenmenü, nichts doppelt programmiert
+- Enthält eine Klasse (`RealmOfRepsApp`), falls OOP verlangt ist
+- Start: `python3 gui.py`. Bei Homebrew-Python fehlt tkinter eventuell: `brew install python-tk`
+- Getestet in der Cloud mit virtuellem Bildschirm: Anzeige, Statistik, Wetter-Plan (Testdaten), Formularprüfung
+
 ## Am Mac testen
 
 1. GitHub Desktop: Repo klonen bzw. **Fetch origin → Pull**
@@ -43,5 +53,5 @@ Laufendes Protokoll: Was wurde gemacht, was wurde entschieden.
 
 - Offizielle Angabe prüfen (Mindestanforderungen, Abgabeformat, Termin), siehe `AUFGABE.md` Abschnitt 5
 - XP- und Level-Regeln gemeinsam abnicken
-- Am Mac testen (inkl. Menüpunkt 6 mit echten Wetterdaten)
+- Am Mac testen (inkl. Menüpunkt 6 mit echten Wetterdaten und `gui.py`)
 - Optional: HTML-Version fürs Handy
